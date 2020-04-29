@@ -1,0 +1,204 @@
+<html>
+<head>
+  <title>რიცხვების დაშლა - საგურამოს ვალდორფის სკოლა</title>
+</head>
+<body>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    .wrapper {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      border: 80px solid #a71b2ed1;
+      min-height: 100vh;
+      background: linear-gradient(90deg, rgba(230,226,115,1) 0%, rgba(230,226,115,1) 50%, rgba(230,226,115,1) 100%);
+
+    }
+
+    .header {
+      color: blue;
+      font-size: 48px;
+    }
+
+    .fields-wrapper {
+      display: flex;
+      align-items: center;
+    }
+
+    .number-input {
+      line-height: 36px;
+      font-size: 36px;
+      width: 90px;
+      color: blue;
+    }
+
+    .solve-button {
+      font-weight: bolod;
+      height: 50px;
+      margin-left: 11px;
+      color: blue;
+      font-size: 24px;
+    }
+
+    .number-val {
+      border-radius: 50%;
+      font-size: 36px;
+      text-align: center;
+      border: 10px solid red;
+      color: blue;
+      padding: 8px;
+      min-width: 30px;
+    }
+
+    .result-item {
+      padding: 3px;
+      font-size: 36px;
+      color: blue;
+    }
+
+    .count-result-item {
+      padding: 3px;
+      font-size: 36px;
+      color: blue;
+    }
+  </style>
+
+  <script>
+    const cache = {};
+    const cache2 = {};
+
+    const allVars = (n, include) => {
+      if (cache[n]) {
+        return cache[n];
+      }
+      let result = include ? [[n, 0]] : [];
+      for (let i=1; i<n; i++) {
+        result.push([i, n-i]);
+        result = [...result, ...variants(n-i).map(a => [i, ...a] )];
+      }
+      return cache[n] = result.filter(a => a.length);
+    }
+
+    const countVars = (n, include) => {
+      if (cache2[n]) {
+        return cache2[n];
+      }
+      let result = include ? 1n : 0n;
+      for (let i=1; i<n; i++) {
+        result++;
+        result += countVars(n-i);
+      }
+      return cache2[n] = result;
+    }
+
+    const variants = (n, include) => {
+      if (n<16) {
+        return  allVars(n, include);
+      }
+      return countVars(n, include);
+    }
+
+    const formatN = (n) => {
+      let s = String(n);
+      const a = [];
+      while(s) {
+        a.push(s.substr(-3));
+        s = s.substr(0, s.length -3)
+      }
+      return a.reverse().join(' ').bold();
+    }
+
+    const el = (tag, { style, body, attrs } = {}) => {
+      const el = document.createElement(tag);
+      if (style) {
+        el.setAttribute('style', style);
+      }
+      for (const p in attrs) {
+        el.setAttribute(p, attrs[p]);
+      }
+      if (body) {
+        el.innerHTML = body
+      }
+      return { 
+        el,
+        add(...els) {
+          els.forEach(child => el.appendChild(child.el))
+          return this;
+        },
+        on(e, handler) {
+          el.addEventListener(e, handler)
+          return this;
+        },
+        val(type) {
+          return type === 'n' ? +el.value : el.value;
+        },
+        remove(child) {
+          for (const c of el.children) {
+            if (c === child.el)  {
+              el.removeChild(child.el);
+            }
+          }
+          return this;
+        },
+        removeAll() {
+          for (const c of el.children) {
+            el.removeChild(c);
+          }
+        },
+      };
+    }
+
+    const wrapper = el('div', { attrs: { class: 'wrapper' } });
+    const errorDivWrapper = el('div');
+    const resultsDivWrapper = el('div', { style: 'margin-top: 10px;' });
+    const errorDiv = el('div', { body: 'შეიყვანეთ დადებითი მთელი რიცხვი', style: 'color: red; font-size: 28px;' });
+
+    const numberInput = el('input', { attrs: { type: 'number', class: 'number-input' } });
+    const button = el('button', { attrs: { type: 'button' }, body: 'დაშლა', attrs: { class: 'solve-button' } }).on('click', () => {
+      resultsDivWrapper.removeAll();
+
+      const n = numberInput.val('n');
+      if (isNaN(n) || n<1) {
+        errorDivWrapper.add(errorDiv);
+        return;
+      }
+
+      errorDivWrapper.remove(errorDiv);
+
+      const resDiv = el('div', { style: 'display: flex; align-items: center; flex-direction: column;' }).add(
+        el('div', { body: `${n}`, attrs: { class: 'number-val' } })
+      );
+      const answers = variants(n, true);
+      if (typeof answers === 'bigint') {
+        resDiv.add(
+          el('div', { 
+             body: `სულ არის ${formatN(answers)} ვარიანტი! 
+                <div>${'მათი ჩამოწერა კომპიუტერსაც კი გაჭედავს! :('.fontcolor('red')}</div>`,
+             attrs: { class: 'count-result-item' } })
+        );
+      } else {
+        answers.map(answer => {
+          resDiv.add(el('div', { body: answer.join(' '), attrs: { class: 'result-item' } }))
+        });
+      }
+      resultsDivWrapper.add(resDiv);
+    });
+
+    wrapper.add(
+      el('h1', { body: 'რიცხვების დაშლა', attrs: { class: 'header' } }),
+      el('div', { attrs: { class: 'fields-wrapper' } }).add(
+        numberInput,
+        button
+      ),
+      errorDivWrapper,
+      resultsDivWrapper,
+    );
+
+    document.body.appendChild(wrapper.el);
+
+  </script>
+</body>
+</html>
